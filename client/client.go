@@ -69,8 +69,85 @@ func (c *QuayClient) AddTeamMember(accountName, teamName, memberName string) (*h
 	return resp, QuayApiError{Error: err}
 }
 
+func (c *QuayClient) GetPrototypesByOrganization(organizationName string) (PrototypesResponse, *http.Response, QuayApiError) {
+
+	req, err := c.newRequest("GET", fmt.Sprintf("/api/v1/organization/%s/prototypes", organizationName), nil)
+	if err != nil {
+		return PrototypesResponse{}, nil, QuayApiError{Error: err}
+	}
+	var getPrototypeResponse PrototypesResponse
+	resp, err := c.do(req, &getPrototypeResponse)
+
+	return getPrototypeResponse, resp, QuayApiError{Error: err}
+}
+
+func (c *QuayClient) CreateRobotPermissionForOrganization(organizationName string, robotAccount string, role string) (Prototype, *http.Response, QuayApiError) {
+
+	robotOrganizationPermission := Prototype{
+		Role: role,
+		Delegate: PrototypeDelegate{
+			Kind:      "user",
+			Name:      robotAccount,
+			Robot:     true,
+			OrgMember: true,
+		},
+	}
+
+	req, err := c.newRequest("POST", fmt.Sprintf("/api/v1/organization/%s/prototypes", organizationName), robotOrganizationPermission)
+	if err != nil {
+		return Prototype{}, nil, QuayApiError{Error: err}
+	}
+	var newPrototypeResponse Prototype
+	resp, err := c.do(req, &newPrototypeResponse)
+
+	return newPrototypeResponse, resp, QuayApiError{Error: err}
+}
+
+func (c *QuayClient) GetRobotPermissions(organizationName, robotName string) (PermissionsResponse, *http.Response, QuayApiError) {
+
+	req, err := c.newRequest("GET", fmt.Sprintf("/api/v1/organization/%s/robots/%s/permissions", organizationName, robotName), nil)
+	if err != nil {
+		return PermissionsResponse{}, nil, QuayApiError{Error: err}
+	}
+	var getPermissionsResponse PermissionsResponse
+	resp, err := c.do(req, &getPermissionsResponse)
+
+	return getPermissionsResponse, resp, QuayApiError{Error: err}
+}
+
+func (c *QuayClient) UpdateRepositoryUserPermission(namespace, repositoryName, roleName, permission string) (*Team, *http.Response, QuayApiError) {
+
+	robotName := fmt.Sprintf("%s+%s", namespace, roleName)
+
+	req, err := c.newRequest("PUT", fmt.Sprintf("/api/v1/repository/%s/%s/permissions/user/%s", namespace, repositoryName, robotName), &PermissionUpdateRequest{
+		Role: permission,
+	})
+	if err != nil {
+		return nil, nil, QuayApiError{Error: err}
+	}
+	var createTeamResponse Team
+	resp, err := c.do(req, &createTeamResponse)
+
+	return &createTeamResponse, resp, QuayApiError{Error: err}
+}
+
+func (c *QuayClient) GetRepositoriesForNamespace(namespace string) (RepositoriesResponse, *http.Response, QuayApiError) {
+
+	req, err := c.newRequest("GET", fmt.Sprintf("/api/v1/repository?namespace=%s", namespace), nil)
+	if err != nil {
+		return RepositoriesResponse{}, nil, QuayApiError{Error: err}
+	}
+	var getRepositoriesResponse RepositoriesResponse
+	resp, err := c.do(req, &getRepositoriesResponse)
+
+	return getRepositoriesResponse, resp, QuayApiError{Error: err}
+}
+
 func (c *QuayClient) newRequest(method, path string, body interface{}) (*http.Request, error) {
-	rel := &url.URL{Path: path}
+	rel, err := url.Parse(path)
+	if err != nil {
+		return nil, err
+	}
 	u := c.baseURL.ResolveReference(rel)
 	var buf io.ReadWriter
 	if body != nil {

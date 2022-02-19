@@ -53,6 +53,27 @@ type Team struct {
 	Role QuayTeamRole `json:"role"`
 }
 
+type RepositoriesResponse struct {
+	Repositories []Repository `json:"repositories"`
+}
+type Repository struct {
+	Name   string `json:"name"`
+	Public bool   `json:"is_public"`
+}
+
+type PermissionsResponse struct {
+	Permissions []Permission `json:"permissions"`
+}
+
+type Permission struct {
+	Repository Repository     `json:"repository"`
+	Role       QuayPermission `json:"role"`
+}
+
+type PermissionUpdateRequest struct {
+	Role string `json:"role"`
+}
+
 // StringValue represents an object containing a single string
 type StringValue struct {
 	Value string
@@ -60,4 +81,8 @@ type StringValue struct {
 
 type QuayApiError struct {
 	Error error
+}
+
+func (p *QuayPermission) String() string {
+	return string(*p)
 }

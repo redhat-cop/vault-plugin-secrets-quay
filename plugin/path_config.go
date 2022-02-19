@@ -93,6 +93,10 @@ func (b *quayBackend) pathConfigRead(ctx context.Context, req *logical.Request, 
 		return nil, err
 	}
 
+	if config == nil {
+		return nil, nil
+	}
+
 	return &logical.Response{
 		Data: map[string]interface{}{
 			"url":                      config.URL,

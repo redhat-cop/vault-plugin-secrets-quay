@@ -68,7 +68,7 @@ Register a new _config_ by providing the endpoint to the Quay instance and OAUth
 
 ```shell
 vault write quay/config \
-  url=https://quay-quay-quay.apps.cluster-876b.876b.sandbox595.opentlc.com \
+  url=https://<QUAY_URL> \
   token=<TOKEN>
 ```
 

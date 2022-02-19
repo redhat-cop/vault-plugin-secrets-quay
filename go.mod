@@ -6,6 +6,9 @@ require (
 	github.com/hashicorp/go-hclog v0.16.2
 	github.com/hashicorp/vault/api v1.3.1
 	github.com/hashicorp/vault/sdk v0.3.0
+)
+
+require (
 	github.com/armon/go-metrics v0.3.9 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.0.0 // indirect

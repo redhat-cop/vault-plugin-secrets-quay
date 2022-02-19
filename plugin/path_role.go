@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/hashicorp/vault/sdk/helper/jsonutil"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -23,18 +24,20 @@ const (
 	TeamRoleMember          TeamRole    = "member"
 	AccountTypeUser         AccountType = "user"
 	AccountTypeOrganization AccountType = "organization"
+	PermissionAdmin         Permission  = "admin"
+	PermissionRead          Permission  = "read"
+	PermissionWrite         Permission  = "write"
 )
 
 type quayRoleEntry struct {
-	AccountType                  string                 `json:"account_type"`
-	AccountName                  string                 `json:"account_name"`
-	CreateRepositories           bool                   `json:"create_repositories,omitempty"`
-	DefaultPermission            *Permission            `json:"default_permission,omitempty"`
-	ExistingRepositoryPermission *Permission            `json:"existing_repository_permission,omitempty"`
-	Teams                        *map[string]TeamRole   `json:"teams,omitempty"`
-	Repositories                 *map[string]Permission `json:"repositories,omitempty"`
-	TTL                          time.Duration          `json:"ttl,omitempty"`
-	MaxTTL                       time.Duration          `json:"max_ttl,omitempty"`
+	AccountType        AccountType            `json:"account_type"`
+	AccountName        string                 `json:"account_name"`
+	CreateRepositories bool                   `json:"create_repositories,omitempty"`
+	DefaultPermission  *Permission            `json:"default_permission,omitempty"`
+	Teams              *map[string]TeamRole   `json:"teams,omitempty"`
+	Repositories       *map[string]Permission `json:"repositories,omitempty"`
+	TTL                time.Duration          `json:"ttl,omitempty"`
+	MaxTTL             time.Duration          `json:"max_ttl,omitempty"`
 }
 
 type quayPermission struct {
@@ -46,64 +49,7 @@ func pathRole(b *quayBackend) []*framework.Path {
 	return []*framework.Path{
 		{
 			Pattern: fmt.Sprintf("%s/%s", rolesStoragePath, framework.GenericNameRegex("name")),
-			Fields: map[string]*framework.FieldSchema{
-				"name": {
-					Type:        framework.TypeLowerCaseString,
-					Description: "Name of the role",
-					Required:    true,
-					DisplayAttrs: &framework.DisplayAttributes{
-						Name: "Name",
-					},
-				},
-				"account_name": {
-					Type:        framework.TypeString,
-					Description: "Type of account the robot account should be placed within",
-					Required:    true,
-					DisplayAttrs: &framework.DisplayAttributes{
-						Name: "Robot Account Name",
-					},
-				},
-				"account_type": {
-					Type:          framework.TypeString,
-					Description:   "Type of account the robot account should be placed within",
-					AllowedValues: []interface{}{"user", "organization"},
-					Required:      true,
-					DisplayAttrs: &framework.DisplayAttributes{
-						Name: "Account Type",
-					},
-				},
-				"create_repositories": {
-					Type:        framework.TypeBool,
-					Description: "Allow the Robot Account to create repositories in the organization",
-					DisplayAttrs: &framework.DisplayAttributes{
-						Name: "Create Repositories",
-					},
-				},
-				"existing_repository_permission": {
-					Type:          framework.TypeString,
-					Description:   "Permission applied to existing repositories",
-					AllowedValues: []interface{}{"admin", "read", "write"},
-					DisplayAttrs: &framework.DisplayAttributes{
-						Name: "Existing Repository Permission",
-					},
-				},
-				"prototype": {
-					Type:          framework.TypeString,
-					Description:   "Default permission applied to new repositories",
-					AllowedValues: []interface{}{"admin", "read", "write"},
-					DisplayAttrs: &framework.DisplayAttributes{
-						Name: "Prototype",
-					},
-				},
-				"ttl": {
-					Type:        framework.TypeDurationSecond,
-					Description: "Default lease for generated credentials. If not set or set to 0, will use system default.",
-				},
-				"max_ttl": {
-					Type:        framework.TypeDurationSecond,
-					Description: "Maximum time for role. If not set or set to 0, will use system default.",
-				},
-			},
+			Fields:  dynamicRoleFieldSchemas(),
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.ReadOperation: &framework.PathOperation{
 					Callback: b.pathRolesRead,
@@ -124,24 +70,7 @@ func pathRole(b *quayBackend) []*framework.Path {
 		},
 		{
 			Pattern: fmt.Sprintf("%s/%s", staticRolesStoragePath, framework.GenericNameRegex("name")),
-			Fields: map[string]*framework.FieldSchema{
-				"name": {
-					Type:        framework.TypeLowerCaseString,
-					Description: "Name of the role",
-					Required:    true,
-				},
-				"account_name": {
-					Type:        framework.TypeString,
-					Description: "Type of account the robot account should be placed within",
-					Required:    true,
-				},
-				"account_type": {
-					Type:          framework.TypeString,
-					Description:   "Type of account the robot account should be placed within",
-					AllowedValues: []interface{}{"user", "organization"},
-					Required:      true,
-				},
-			},
+			Fields:  defaultFieldSchemas(),
 			Operations: map[logical.Operation]framework.OperationHandler{
 				logical.ReadOperation: &framework.PathOperation{
 					Callback: b.pathRolesRead,
@@ -215,6 +144,14 @@ func (b *quayBackend) pathRolesRead(ctx context.Context, req *logical.Request, d
 		"create_repositories": entry.CreateRepositories,
 	}
 
+	if entry.DefaultPermission != nil {
+		respData["default_permission"] = entry.DefaultPermission.String()
+	}
+
+	if entry.Repositories != nil {
+		respData["repositories"] = entry.Repositories
+	}
+
 	if storagePath == rolesStoragePath {
 		respData["ttl"] = entry.TTL.Seconds()
 		respData["max_ttl"] = entry.MaxTTL.Seconds()
@@ -241,9 +178,8 @@ func (b *quayBackend) pathRolesWrite(ctx context.Context, req *logical.Request, 
 		roleEntry = &quayRoleEntry{}
 	}
 
-	if accountType, ok := data.GetOk("account_type"); ok {
-		roleEntry.AccountType = accountType.(string)
-	}
+	accountType := data.Get("account_type")
+	roleEntry.AccountType = AccountType(accountType.(string))
 
 	if accountName, ok := data.GetOk("account_name"); ok {
 		roleEntry.AccountName = accountName.(string)
@@ -251,6 +187,20 @@ func (b *quayBackend) pathRolesWrite(ctx context.Context, req *logical.Request, 
 
 	if createRepositoriesRaw, ok := data.GetOk("create_repositories"); ok {
 		roleEntry.CreateRepositories = createRepositoriesRaw.(bool)
+	}
+
+	if defaultPermissionRaw, ok := data.GetOk("default_permission"); ok {
+		defaultPermission := Permission(defaultPermissionRaw.(string))
+		roleEntry.DefaultPermission = &defaultPermission
+	}
+
+	if repositoriesRaw, ok := data.GetOk("repositories"); ok {
+		parsedRepositories := make(map[string]Permission, 0)
+		err := jsonutil.DecodeJSON([]byte(repositoriesRaw.(string)), &parsedRepositories)
+		if err != nil {
+			return logical.ErrorResponse("error parsing repositories '%s': %s", repositoriesRaw.(string), err.Error()), nil
+		}
+		roleEntry.Repositories = &parsedRepositories
 	}
 
 	if ttlRaw, ok := data.GetOk("ttl"); ok {
@@ -347,8 +297,83 @@ func getStoragePath(req *logical.Request) string {
 
 }
 
-func defaultRoleWriteFields() map[string]*framework.FieldSchema {
-	return nil
+func defaultFieldSchemas() map[string]*framework.FieldSchema {
+
+	return map[string]*framework.FieldSchema{
+		"name": {
+			Type:        framework.TypeLowerCaseString,
+			Description: "Name of the role",
+			Required:    true,
+			DisplayAttrs: &framework.DisplayAttributes{
+				Name: "Name",
+			},
+		},
+		"account_name": {
+			Type:        framework.TypeString,
+			Description: "Type of account the robot account should be placed within",
+			Required:    true,
+			DisplayAttrs: &framework.DisplayAttributes{
+				Name: "Robot Account Name",
+			},
+		},
+		"account_type": {
+			Type:          framework.TypeString,
+			Description:   "Type of account the robot account should be placed within",
+			AllowedValues: []interface{}{"user", "organization"},
+			Default:       "organization",
+			Required:      true,
+			DisplayAttrs: &framework.DisplayAttributes{
+				Name: "Account Type",
+			},
+		},
+		"create_repositories": {
+			Type:        framework.TypeBool,
+			Description: "Allow the Robot Account to create repositories in the organization",
+			DisplayAttrs: &framework.DisplayAttributes{
+				Name: "Create Repositories",
+			},
+		},
+		"default_permission": {
+			Type:          framework.TypeString,
+			Description:   "Default permission applied to new repositories",
+			AllowedValues: []interface{}{"admin", "read", "write"},
+			DisplayAttrs: &framework.DisplayAttributes{
+				Name: "Default Permission",
+			},
+		},
+		"repositories": {
+			Type:        framework.TypeString,
+			Description: "Permissions to apply to repositories",
+			DisplayAttrs: &framework.DisplayAttributes{
+				Name: "Repositories",
+			},
+		},
+	}
+
+}
+
+func dynamicRoleFieldSchemas() map[string]*framework.FieldSchema {
+	dynamicRoleFieldSchemas := defaultFieldSchemas()
+
+	dynamicRoleFieldSchemas["ttl"] = &framework.FieldSchema{
+		Type:        framework.TypeDurationSecond,
+		Description: "Default lease for generated credentials. If not set or set to 0, will use system default.",
+	}
+
+	dynamicRoleFieldSchemas["max_ttl"] = &framework.FieldSchema{
+		Type:        framework.TypeDurationSecond,
+		Description: "Maximum time for role. If not set or set to 0, will use system default.",
+	}
+
+	return dynamicRoleFieldSchemas
+}
+
+func (a *AccountType) String() string {
+	return string(*a)
+}
+
+func (p *Permission) String() string {
+	return string(*p)
 }
 
 const pathRoleHelpSynopsis = `Manages the Vault role for generating Quay robot accounts.`
