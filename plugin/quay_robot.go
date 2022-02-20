@@ -131,14 +131,12 @@ func (*quayBackend) assembleTeams(role *quayRoleEntry) map[string]*qc.Team {
 	// Build Teams
 	if role.Teams != nil {
 		for teamName, team := range *role.Teams {
-			teamRole := mapTeamRole(team)
 
-			if len(teamRole) > 0 {
-				teams[teamName] = &qc.Team{
-					Name: teamName,
-					Role: teamRole,
-				}
+			teams[teamName] = &qc.Team{
+				Name: teamName,
+				Role: qc.QuayTeamRole(team.String()),
 			}
+
 		}
 	}
 
@@ -151,18 +149,6 @@ func (*quayBackend) assembleTeams(role *quayRoleEntry) map[string]*qc.Team {
 	}
 
 	return teams
-}
-
-func mapTeamRole(teamRole TeamRole) qc.QuayTeamRole {
-	switch teamRole {
-	case TeamRoleAdmin:
-		return qc.QuayTeamRoleAdmin
-	case TeamRoleCreator:
-		return qc.QuayTeamRoleCreator
-	case TeamRoleMember:
-		return qc.QuayTeamRoleMember
-	}
-	return ""
 }
 
 func isRobotAccountInPrototypeByRole(prototypes []qc.Prototype, robotAccount string, role string) bool {

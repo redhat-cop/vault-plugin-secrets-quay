@@ -152,6 +152,10 @@ func (b *quayBackend) pathRolesRead(ctx context.Context, req *logical.Request, d
 		respData["repositories"] = entry.Repositories
 	}
 
+	if entry.Teams != nil {
+		respData["teams"] = entry.Teams
+	}
+
 	if storagePath == rolesStoragePath {
 		respData["ttl"] = entry.TTL.Seconds()
 		respData["max_ttl"] = entry.MaxTTL.Seconds()
@@ -201,6 +205,15 @@ func (b *quayBackend) pathRolesWrite(ctx context.Context, req *logical.Request, 
 			return logical.ErrorResponse("error parsing repositories '%s': %s", repositoriesRaw.(string), err.Error()), nil
 		}
 		roleEntry.Repositories = &parsedRepositories
+	}
+
+	if teamsRaw, ok := data.GetOk("teams"); ok {
+		parsedTeams := make(map[string]TeamRole, 0)
+		err := jsonutil.DecodeJSON([]byte(teamsRaw.(string)), &parsedTeams)
+		if err != nil {
+			return logical.ErrorResponse("error parsing repositories '%s': %s", teamsRaw.(string), err.Error()), nil
+		}
+		roleEntry.Teams = &parsedTeams
 	}
 
 	if ttlRaw, ok := data.GetOk("ttl"); ok {
@@ -348,6 +361,13 @@ func defaultFieldSchemas() map[string]*framework.FieldSchema {
 				Name: "Repositories",
 			},
 		},
+		"teams": {
+			Type:        framework.TypeString,
+			Description: "Permissions to apply to teams",
+			DisplayAttrs: &framework.DisplayAttributes{
+				Name: "Repositories",
+			},
+		},
 	}
 
 }
@@ -374,6 +394,10 @@ func (a *AccountType) String() string {
 
 func (p *Permission) String() string {
 	return string(*p)
+}
+
+func (t *TeamRole) String() string {
+	return string(*t)
 }
 
 const pathRoleHelpSynopsis = `Manages the Vault role for generating Quay robot accounts.`
