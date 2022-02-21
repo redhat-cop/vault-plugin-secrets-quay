@@ -26,43 +26,54 @@ Otherwise, first read this guide on how to [get started with Vault](https://www.
 
 To learn specifically about how plugins work, see documentation on [Vault plugins](https://www.vaultproject.io/docs/internals/plugins.html).
 
-## Developing
+## Installation
 
-If you wish to work on this plugin, you'll first need
-[Go](https://www.golang.org) installed on your machine
-(version 1.17+ is _required_).
+The plugin can be installed by either downloading a release or building from source for your desired Operating System and architecture
 
-For local dev first make sure Go is properly installed, including
-setting up a [GOPATH](https://golang.org/doc/code.html#GOPATH).
-Next, clone this repository into
-`$GOPATH/src/github.com/redhat-cop/vault-plugin-secrets-quay`.
+### Release
 
-To compile the plugin, run `make build`
+Download the latest stable version from the [Releases](https://github.com/sabre1041/vault-plugin-secrets-quay/blob/main/releases) page.
 
-This will put the plugin binary in the `vault/plugins` directory:
+### From Source
 
-```shell
-make build
-```
+Instructions on how to build the plugin manually can be found in the [Developing](#developing) section.
 
-Once the binary has been built, you can start a Vault development server:
+### Plugin installation
+
+Custom Vault plugins require additional steps before they can be made available to Vault.
+
+1. Move the plugin binary to the `plugin_directory` as configured in Vault:
 
 ```shell
-$ vault start
-...
+mv vault-plugin-secrets-quay-<os>-<arch> <plugin_directory>/vault-plugin-secrets-quay
 ```
 
-Once the server is started, the plugin will be registered in the Vault [plugin catalog](https://www.vaultproject.io/docs/internals/plugins.html#plugin-catalog).
-
-The plugin can be enabled by running the following command:
+2. Calculate the plugin binary SHA256 sum. Set an environment variable called _SHA256SUM_ either using the release binary or from source.
 
 ```shell
-$ make enable
-
-vault secrets enable -path=quay vault-plugin-secrets-quay
+# Using compiled binary using checksums.txt from Release
+SHA256SUM=$(grep <binary_name>$ checksums.txt | cut -d' ' -f1)
+# Built from source
+SHA256SUM=$(shasum -a 256 <compiled_binary> | cut -d' ' -f1)
 ```
 
-# Usage
+3. Register the plugin in Vault
+
+```shell
+vault plugin register -sha256=$SHA256SUM vault-plugin-secrets-quay
+```
+
+4. Enable the plugin
+
+```shell
+vault secrets enable quay
+```
+
+## Configuration and Usage
+
+This section describes how to configure and use the secrets engine.
+
+### Configuration
 
 Register a new _config_ by providing the endpoint to the Quay instance and OAUth token for the API. More information on how to generate an OAuth token can be found [here](https://docs.quay.io/api/).
 
@@ -72,14 +83,38 @@ vault write quay/config \
   token=<TOKEN>
 ```
 
+The full list of options can be found below:
+
+| Name | Description | Defaults | Required |
+| ----- | ---------- | -------- | ----- |
+| `url` | URL of the Quay instance | | Yes |
+| `token` | Quay OAuth token | | Yes |
+| `ca_certificate` | CA certificate to communicate to | | No |
+| `disable_ssl_verification` | Disable SSL verification when communicating with Quay | | No |
+
+### Roles
+
 Two different types of [roles](https://learn.hashicorp.com/tutorials/vault/custom-secrets-engine-role) can be configured:
 
 - Static Roles (`static-roles`) - Provides long lived credentials to access Quay
 - Dynamic (`roles`) - Provides short lived, temporary credentials with a TTL expiration
 
+A new _static role_ is created at the endpoint `quay/static-roles` while dynamic roles are created against the endpoint `quay/roles`.
+
+The full list of options when configuring roles can be found below:
+
+| Name | Description | Defaults | Required |
+| ----- | ---------- | -------- | ----- |
+| `account_type` | Type of account to associate the Robot account to (`user` or `organization`) | `organization` | No |
+| `account_name` | Name of the _user_ or _organization_ the Robot account should be created within | | Yes |
+| `create_repositories` | Allow the Robot account the ability to create new repositories. Once enabled, a new _Team_ called `vault-creator` will be created with `creator` privileges | `false` | No |
+| `default_permission` | Default permissions applied for the robot account against newly created repositories | | No |
+| `repositories` | Permissions applied to repositories for the Robot account. An example of how content should be formatted can be found [here](examples/repositories.json).  | | No |
+| `teams` | Permissions applied to Teams for the Robot account. An example of how content should be formatted can be found [here](examples/teams.json).  | | No |
+
 Let's show examples of how each can be used.
 
-## Static Roles
+### Static Roles
 
 To manage repositories within the _myorg_ organization and assuming the OAuth token configured previously has the permissions to manage these resources, create a static role which will have permission to create repositories:
 
@@ -111,7 +146,7 @@ To remove the robot account and revoke credentials, execute the following comman
 vault delete quay/static-roles/my-static-account
 ```
 
-## Dynamic Secrets
+### Dynamic Secrets
 
 Short lived credentials can be created to limit validity of a robot account. Similar to static roles, a role that leverages the dynamic secrets engine can be created using the following command:
 
@@ -148,4 +183,40 @@ The role itself can be removed using the following command:
 
 ```shell
 vault delete quay/roles/my-dynamic-account
+```
+
+## Developing
+
+If you wish to work on this plugin, you'll first need
+[Go](https://www.golang.org) installed on your machine
+(version 1.17+ is _required_).
+
+For local dev first make sure Go is properly installed, including
+setting up a [GOPATH](https://golang.org/doc/code.html#GOPATH).
+Next, clone this repository into
+`$GOPATH/src/github.com/redhat-cop/vault-plugin-secrets-quay`.
+
+To compile the plugin, run `make build`
+
+This will put the plugin binary in the `vault/plugins` directory:
+
+```shell
+make build
+```
+
+Once the binary has been built, you can start a Vault development server:
+
+```shell
+$ vault start
+...
+```
+
+Once the server is started, the plugin will be registered in the Vault [plugin catalog](https://www.vaultproject.io/docs/internals/plugins.html#plugin-catalog).
+
+The plugin can be enabled by running the following command:
+
+```shell
+$ make enable
+
+vault secrets enable -path=quay vault-plugin-secrets-quay
 ```
