@@ -3,7 +3,7 @@ module github.com/redhat-cop/vault-plugin-secrets-quay
 go 1.17
 
 require (
-	github.com/hashicorp/go-hclog v0.16.2
+	github.com/hashicorp/go-hclog v1.1.0
 	github.com/hashicorp/vault/api v1.3.1
 	github.com/hashicorp/vault/sdk v0.3.0
 )
