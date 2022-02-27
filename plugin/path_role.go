@@ -13,25 +13,25 @@ import (
 
 type Permission string
 type TeamRole string
-type AccountType string
+type NamespaceType string
 
 const (
-	rolesStoragePath                    = "roles"
-	staticRolesStoragePath              = "static-roles"
-	organization                        = "organization"
-	TeamRoleAdmin           TeamRole    = "admin"
-	TeamRoleCreator         TeamRole    = "creator"
-	TeamRoleMember          TeamRole    = "member"
-	AccountTypeUser         AccountType = "user"
-	AccountTypeOrganization AccountType = "organization"
-	PermissionAdmin         Permission  = "admin"
-	PermissionRead          Permission  = "read"
-	PermissionWrite         Permission  = "write"
+	rolesStoragePath                        = "roles"
+	staticRolesStoragePath                  = "static-roles"
+	organization                            = "organization"
+	TeamRoleAdmin             TeamRole      = "admin"
+	TeamRoleCreator           TeamRole      = "creator"
+	TeamRoleMember            TeamRole      = "member"
+	NamespaceTypeUser         NamespaceType = "user"
+	NamespaceTypeOrganization NamespaceType = "organization"
+	PermissionAdmin           Permission    = "admin"
+	PermissionRead            Permission    = "read"
+	PermissionWrite           Permission    = "write"
 )
 
 type quayRoleEntry struct {
-	AccountType        AccountType            `json:"account_type"`
-	AccountName        string                 `json:"account_name"`
+	NamespaceType      NamespaceType          `json:"namespace_type"`
+	NamespaceName      string                 `json:"namespace_name"`
 	CreateRepositories bool                   `json:"create_repositories,omitempty"`
 	DefaultPermission  *Permission            `json:"default_permission,omitempty"`
 	Teams              *map[string]TeamRole   `json:"teams,omitempty"`
@@ -139,8 +139,8 @@ func (b *quayBackend) pathRolesRead(ctx context.Context, req *logical.Request, d
 	}
 
 	respData := map[string]interface{}{
-		"account_name":        entry.AccountName,
-		"account_type":        entry.AccountType,
+		"namespace_name":      entry.NamespaceName,
+		"namespace_type":      entry.NamespaceType,
 		"create_repositories": entry.CreateRepositories,
 	}
 
@@ -182,11 +182,11 @@ func (b *quayBackend) pathRolesWrite(ctx context.Context, req *logical.Request, 
 		roleEntry = &quayRoleEntry{}
 	}
 
-	accountType := data.Get("account_type")
-	roleEntry.AccountType = AccountType(accountType.(string))
+	namespaceType := data.Get("namespace_type")
+	roleEntry.NamespaceType = NamespaceType(namespaceType.(string))
 
-	if accountName, ok := data.GetOk("account_name"); ok {
-		roleEntry.AccountName = accountName.(string)
+	if namespaceName, ok := data.GetOk("namespace_name"); ok {
+		roleEntry.NamespaceName = namespaceName.(string)
 	}
 
 	if createRepositoriesRaw, ok := data.GetOk("create_repositories"); ok {
@@ -321,22 +321,22 @@ func defaultFieldSchemas() map[string]*framework.FieldSchema {
 				Name: "Name",
 			},
 		},
-		"account_name": {
+		"namespace_name": {
 			Type:        framework.TypeString,
-			Description: "Type of account the robot account should be placed within",
+			Description: "Name of the namespace the robot account should be placed within",
 			Required:    true,
 			DisplayAttrs: &framework.DisplayAttributes{
-				Name: "Robot Account Name",
+				Name: "Namespace Name",
 			},
 		},
-		"account_type": {
+		"namespace_type": {
 			Type:          framework.TypeString,
-			Description:   "Type of account the robot account should be placed within",
+			Description:   "Type of namespace the robot account should be placed within",
 			AllowedValues: []interface{}{"user", "organization"},
 			Default:       "organization",
 			Required:      true,
 			DisplayAttrs: &framework.DisplayAttributes{
-				Name: "Account Type",
+				Name: "Namespace Type",
 			},
 		},
 		"create_repositories": {
@@ -388,8 +388,8 @@ func dynamicRoleFieldSchemas() map[string]*framework.FieldSchema {
 	return dynamicRoleFieldSchemas
 }
 
-func (a *AccountType) String() string {
-	return string(*a)
+func (n *NamespaceType) String() string {
+	return string(*n)
 }
 
 func (p *Permission) String() string {

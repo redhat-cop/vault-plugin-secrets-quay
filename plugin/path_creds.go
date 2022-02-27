@@ -99,10 +99,10 @@ func (b *quayBackend) pathCredentialsRead(ctx context.Context, req *logical.Requ
 	}
 
 	secretData := map[string]interface{}{
-		"account_type": role.AccountType,
-		"account_name": role.AccountName,
-		"username":     robotAccount.Name,
-		"password":     robotAccount.Token,
+		"namespace_type": role.NamespaceType,
+		"namespace_name": role.NamespaceName,
+		"username":       robotAccount.Name,
+		"password":       robotAccount.Token,
 	}
 	secretInternalData := map[string]interface{}{
 		"role":     roleName,
@@ -153,10 +153,10 @@ func (b *quayBackend) pathStaticCredentialsRead(ctx context.Context, req *logica
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"account_type": role.AccountType,
-			"account_name": role.AccountName,
-			"username":     robotAccount.Name,
-			"password":     robotAccount.Token,
+			"namespace_type":  role.NamespaceType,
+			"namespaces_name": role.NamespaceName,
+			"username":        robotAccount.Name,
+			"password":        robotAccount.Token,
 		},
 	}, nil
 

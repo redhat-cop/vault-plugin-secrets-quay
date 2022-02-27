@@ -105,8 +105,8 @@ The full list of options when configuring roles can be found below:
 
 | Name | Description | Defaults | Required |
 | ----- | ---------- | -------- | ----- |
-| `account_type` | Type of account to associate the Robot account to (`user` or `organization`) | `organization` | No |
-| `account_name` | Name of the _user_ or _organization_ the Robot account should be created within | | Yes |
+| `namespace_type` | Type of namespace to associate the Robot account to (`user` or `organization`) | `organization` | No |
+| `namespace_name` | Name of the _user_ or _organization_ the Robot account should be created within | | Yes |
 | `create_repositories` | Allow the Robot account the ability to create new repositories. Once enabled, a new _Team_ called `vault-creator` will be created with `creator` privileges | `false` | No |
 | `default_permission` | Default permissions applied for the robot account against newly created repositories | | No |
 | `repositories` | Permissions applied to repositories for the Robot account. An example of how content should be formatted can be found [here](examples/repositories.json).  | | No |
@@ -120,8 +120,7 @@ To manage repositories within the _myorg_ organization and assuming the OAuth to
 
 ```shell
 $ vault write quay/static-roles/my-static-account \
-  account_name=myorg \
-  account_type=organization \
+  namespace_name=myorg \
   create_repositories=true
 ```
 
@@ -132,8 +131,8 @@ $ vault read quay/static-creds/my-static-account
 
 Key             Value
 ---             -----
-account_name    myorg
-account_type    organization
+namespace_name    myorg
+namespace_type    organization
 password        <PASSWORD>
 username        <USERNAME>
 ```
@@ -152,8 +151,7 @@ Short lived credentials can be created to limit validity of a robot account. Sim
 
 ```shell
 $ vault write quay/roles/my-dynamic-account \
-  account_name=myorg \
-  account_type=organization \
+  namespace_name=myorg \
   create_repositories=true
 ```
 
@@ -169,8 +167,8 @@ Key                Value
 lease_id           quay/creds/my-dynamic-account/JVrcAL9Oyrat2MOgKKTdrL1T
 lease_duration     100h
 lease_renewable    true
-account_name       myorg
-account_type       organization
+namespace_name     myorg
+namespace_type     organization
 password           <PASSWORD>
 username           <USERNAME_WITH_UNIQUE_SUFFIX>
 ```

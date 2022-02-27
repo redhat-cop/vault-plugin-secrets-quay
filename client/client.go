@@ -11,9 +11,9 @@ import (
 	"reflect"
 )
 
-func (c *QuayClient) GetRobotAccount(accountType string, accountName string, robotName string) (RobotAccount, *http.Response, QuayApiError) {
+func (c *QuayClient) GetRobotAccount(namespaceType string, namespaceName string, robotName string) (RobotAccount, *http.Response, QuayApiError) {
 
-	req, err := c.newRequest("GET", fmt.Sprintf("/api/v1/%s/%s/robots/%s", accountType, accountName, robotName), nil)
+	req, err := c.newRequest("GET", fmt.Sprintf("/api/v1/%s/%s/robots/%s", namespaceType, namespaceName, robotName), nil)
 	if err != nil {
 		return RobotAccount{}, nil, QuayApiError{Error: err}
 	}
@@ -23,9 +23,9 @@ func (c *QuayClient) GetRobotAccount(accountType string, accountName string, rob
 	return getRobotResponse, resp, QuayApiError{Error: err}
 }
 
-func (c *QuayClient) CreateRobotAccount(accountType string, accountName string, robotName string) (RobotAccount, *http.Response, QuayApiError) {
+func (c *QuayClient) CreateRobotAccount(namespaceType string, namespaceName string, robotName string) (RobotAccount, *http.Response, QuayApiError) {
 
-	req, err := c.newRequest("PUT", fmt.Sprintf("/api/v1/%s/%s/robots/%s", accountType, accountName, robotName), nil)
+	req, err := c.newRequest("PUT", fmt.Sprintf("/api/v1/%s/%s/robots/%s", namespaceType, namespaceName, robotName), nil)
 	if err != nil {
 		return RobotAccount{}, nil, QuayApiError{Error: err}
 	}
@@ -35,9 +35,9 @@ func (c *QuayClient) CreateRobotAccount(accountType string, accountName string, 
 	return createRobotResponse, resp, QuayApiError{Error: err}
 }
 
-func (c *QuayClient) DeleteRobotAccount(accountType string, accountName string, robotName string) (*http.Response, QuayApiError) {
+func (c *QuayClient) DeleteRobotAccount(namespaceType string, namespaceName string, robotName string) (*http.Response, QuayApiError) {
 
-	req, err := c.newRequest("DELETE", fmt.Sprintf("/api/v1/%s/%s/robots/%s", accountType, accountName, robotName), nil)
+	req, err := c.newRequest("DELETE", fmt.Sprintf("/api/v1/%s/%s/robots/%s", namespaceType, namespaceName, robotName), nil)
 	if err != nil {
 		return nil, QuayApiError{Error: err}
 	}
@@ -46,9 +46,9 @@ func (c *QuayClient) DeleteRobotAccount(accountType string, accountName string, 
 	return resp, QuayApiError{Error: err}
 }
 
-func (c *QuayClient) CreateTeam(accountName string, team *Team) (Team, *http.Response, QuayApiError) {
+func (c *QuayClient) CreateTeam(namespaceName string, team *Team) (Team, *http.Response, QuayApiError) {
 
-	req, err := c.newRequest("PUT", fmt.Sprintf("/api/v1/organization/%s/team/%s", accountName, team.Name), team)
+	req, err := c.newRequest("PUT", fmt.Sprintf("/api/v1/organization/%s/team/%s", namespaceName, team.Name), team)
 	if err != nil {
 		return Team{}, nil, QuayApiError{Error: err}
 	}
@@ -58,9 +58,9 @@ func (c *QuayClient) CreateTeam(accountName string, team *Team) (Team, *http.Res
 	return createTeamResponse, resp, QuayApiError{Error: err}
 }
 
-func (c *QuayClient) AddTeamMember(accountName, teamName, memberName string) (*http.Response, QuayApiError) {
+func (c *QuayClient) AddTeamMember(namespaceName, teamName, memberName string) (*http.Response, QuayApiError) {
 
-	req, err := c.newRequest("PUT", fmt.Sprintf("/api/v1/organization/%s/team/%s/members/%s", accountName, teamName, memberName), nil)
+	req, err := c.newRequest("PUT", fmt.Sprintf("/api/v1/organization/%s/team/%s/members/%s", namespaceName, teamName, memberName), nil)
 	if err != nil {
 		return nil, QuayApiError{Error: err}
 	}
