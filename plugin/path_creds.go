@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -84,6 +85,10 @@ func (b *quayBackend) pathCredentialsRead(ctx context.Context, req *logical.Requ
 		return nil, nil
 	}
 
+	lock := locksutil.LockForKey(b.roleLocks, roleName)
+	lock.Lock()
+	defer lock.Unlock()
+
 	client, err := b.getClient(ctx, req.Storage)
 	if err != nil {
 		return nil, err
@@ -139,6 +144,10 @@ func (b *quayBackend) pathStaticCredentialsRead(ctx context.Context, req *logica
 		// Attempting to read a role that doesn't exist.
 		return nil, nil
 	}
+
+	lock := locksutil.LockForKey(b.roleLocks, roleName)
+	lock.Lock()
+	defer lock.Unlock()
 
 	client, err := b.getClient(ctx, req.Storage)
 	if err != nil {
@@ -209,6 +218,11 @@ func (b *quayBackend) robotAccountRevoke(ctx context.Context, req *logical.Reque
 	if role == nil {
 		return nil, nil
 	}
+
+	// TODO: Implement this
+	// lock := locksutil.LockForKey(b.roleLocks, roleName)
+	// lock.Lock()
+	// defer lock.Unlock()
 
 	username := usernameRaw.(string)
 

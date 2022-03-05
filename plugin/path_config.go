@@ -123,13 +123,18 @@ func (b *quayBackend) pathConfigWrite(ctx context.Context, req *logical.Request,
 
 	if url, ok := data.GetOk("url"); ok {
 		config.URL = url.(string)
-	} else if !ok && createOperation {
-		return nil, fmt.Errorf("missing url in configuration")
 	}
 
-	token, ok := data.GetOk("token")
-	if ok {
+	if config.URL == "" {
+		return logical.ErrorResponse("url is Required"), nil
+	}
+
+	if token, ok := data.GetOk("token"); ok {
 		config.Token = token.(string)
+	}
+
+	if config.Token == "" {
+		return logical.ErrorResponse("token is Required"), nil
 	}
 
 	caCertificate, ok := data.GetOk("ca_certificate")

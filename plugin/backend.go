@@ -6,13 +6,16 @@ import (
 	"sync"
 
 	"github.com/hashicorp/vault/sdk/framework"
+	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 type quayBackend struct {
 	*framework.Backend
-	lock   sync.RWMutex
+	sync.RWMutex
 	client *client
+
+	roleLocks []*locksutil.LockEntry
 }
 
 var _ logical.Factory = Factory
@@ -54,13 +57,15 @@ func backend() *quayBackend {
 		Invalidate: b.invalidate,
 	}
 
+	b.roleLocks = locksutil.CreateLocks()
+
 	return b
 
 }
 
 func (b *quayBackend) reset() {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.Lock()
+	defer b.Unlock()
 	b.client = nil
 }
 
@@ -71,17 +76,17 @@ func (b *quayBackend) invalidate(ctx context.Context, key string) {
 }
 
 func (b *quayBackend) getClient(ctx context.Context, s logical.Storage) (*client, error) {
-	b.lock.RLock()
-	unlockFunc := b.lock.RUnlock
+	b.RLock()
+	unlockFunc := b.RUnlock
 	defer func() { unlockFunc() }()
 
 	if b.client != nil {
 		return b.client, nil
 	}
 
-	b.lock.RUnlock()
-	b.lock.Lock()
-	unlockFunc = b.lock.Unlock
+	b.RUnlock()
+	b.Lock()
+	unlockFunc = b.Unlock
 
 	config, err := getConfig(ctx, s)
 	if err != nil {
@@ -103,5 +108,5 @@ func (b *quayBackend) getClient(ctx context.Context, s logical.Storage) (*client
 }
 
 const backendHelp = `
-The Quay secrets backend..
+The Quay secrets backend.
 `

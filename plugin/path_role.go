@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/helper/jsonutil"
+	"github.com/hashicorp/vault/sdk/helper/locksutil"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
@@ -189,6 +190,10 @@ func (b *quayBackend) pathRolesWrite(ctx context.Context, req *logical.Request, 
 		roleEntry.NamespaceName = namespaceName.(string)
 	}
 
+	if roleEntry.NamespaceName == "" {
+		return logical.ErrorResponse("namespace_name is Required"), nil
+	}
+
 	if createRepositoriesRaw, ok := data.GetOk("create_repositories"); ok {
 		roleEntry.CreateRepositories = createRepositoriesRaw.(bool)
 	}
@@ -237,14 +242,18 @@ func (b *quayBackend) pathRolesWrite(ctx context.Context, req *logical.Request, 
 }
 
 func (b *quayBackend) pathRolesDelete(ctx context.Context, req *logical.Request, d *framework.FieldData) (*logical.Response, error) {
-	name := d.Get("name").(string)
+	roleName := d.Get("name").(string)
+
+	lock := locksutil.LockForKey(b.roleLocks, roleName)
+	lock.Lock()
+	defer lock.Unlock()
 
 	storagePath := getStoragePath(req)
 
 	// Delete Robot Account if static role
 	if storagePath == staticRolesStoragePath {
 
-		roleEntry, err := b.getRole(ctx, storagePath, name, req.Storage)
+		roleEntry, err := b.getRole(ctx, storagePath, roleName, req.Storage)
 
 		if err != nil {
 			return nil, err
@@ -259,14 +268,14 @@ func (b *quayBackend) pathRolesDelete(ctx context.Context, req *logical.Request,
 			return nil, err
 		}
 
-		err = b.DeleteRobot(client, name, roleEntry)
+		err = b.DeleteRobot(client, roleName, roleEntry)
 
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err := req.Storage.Delete(ctx, fmt.Sprintf("%s/%s", getStoragePath(req), name))
+	err := req.Storage.Delete(ctx, fmt.Sprintf("%s/%s", getStoragePath(req), roleName))
 	if err != nil {
 		return nil, fmt.Errorf("error deleting role: %w", err)
 	}
