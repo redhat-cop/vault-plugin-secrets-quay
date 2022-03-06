@@ -79,7 +79,7 @@ release:
   prerelease: auto
   draft: false
   github:
-    owner: sabre1041
+    owner: redhat-cop
     name: vault-plugin-secrets-quay
   footer: |
     ### Thanks for all contributors!
