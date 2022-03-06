@@ -32,7 +32,7 @@ func (b *quayBackend) createRobot(client *client, robotName string, role *quayRo
 
 	if role.NamespaceType == organization {
 		// Create Teams
-		err := b.CreateAssignTeam(client, robotAccount.Name, role)
+		err := b.createAssignTeam(client, robotAccount.Name, role)
 
 		if err != nil {
 			return nil, err
@@ -94,14 +94,21 @@ func (b *quayBackend) createRobot(client *client, robotName string, role *quayRo
 	return &robotAccount, nil
 }
 
-func (b *quayBackend) DeleteRobot(client *client, robotName string, role *quayRoleEntry) error {
+func (b *quayBackend) deleteRobot(client *client, robotName string, role *quayRoleEntry) error {
 
 	_, apiError := client.DeleteRobotAccount(role.NamespaceType.String(), role.NamespaceName, robotName)
 
 	return apiError.Error
 }
 
-func (b *quayBackend) CreateAssignTeam(client *client, robotName string, role *quayRoleEntry) error {
+func (b *quayBackend) regenerateRobotPassword(client *client, robotName string, role *quayRoleEntry) (*qc.RobotAccount, error) {
+
+	robotAccount, _, apiError := client.RegenerateRobotAccountPassword(role.NamespaceType.String(), role.NamespaceName, robotName)
+
+	return &robotAccount, apiError.Error
+}
+
+func (b *quayBackend) createAssignTeam(client *client, robotName string, role *quayRoleEntry) error {
 
 	teams := b.assembleTeams(role)
 

@@ -219,10 +219,9 @@ func (b *quayBackend) robotAccountRevoke(ctx context.Context, req *logical.Reque
 		return nil, nil
 	}
 
-	// TODO: Implement this
-	// lock := locksutil.LockForKey(b.roleLocks, roleName)
-	// lock.Lock()
-	// defer lock.Unlock()
+	lock := locksutil.LockForKey(b.roleLocks, roleRaw.(string))
+	lock.Lock()
+	defer lock.Unlock()
 
 	username := usernameRaw.(string)
 
@@ -234,7 +233,7 @@ func (b *quayBackend) robotAccountRevoke(ctx context.Context, req *logical.Reque
 	// Split out parts of robot account
 	usernameSplit := strings.Split(username, "+")
 
-	return nil, b.DeleteRobot(client, usernameSplit[len(usernameSplit)-1], role)
+	return nil, b.deleteRobot(client, usernameSplit[len(usernameSplit)-1], role)
 }
 
 func randomSuffix(input string) string {

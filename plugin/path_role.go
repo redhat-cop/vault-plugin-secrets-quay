@@ -268,7 +268,7 @@ func (b *quayBackend) pathRolesDelete(ctx context.Context, req *logical.Request,
 			return nil, err
 		}
 
-		err = b.DeleteRobot(client, roleName, roleEntry)
+		err = b.deleteRobot(client, roleName, roleEntry)
 
 		if err != nil {
 			return nil, err

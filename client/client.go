@@ -46,6 +46,18 @@ func (c *QuayClient) DeleteRobotAccount(namespaceType string, namespaceName stri
 	return resp, QuayApiError{Error: err}
 }
 
+func (c *QuayClient) RegenerateRobotAccountPassword(namespaceType string, namespaceName string, robotName string) (RobotAccount, *http.Response, QuayApiError) {
+
+	req, err := c.newRequest("POST", fmt.Sprintf("/api/v1/%s/%s/robots/%s/regenerate", namespaceType, namespaceName, robotName), nil)
+	if err != nil {
+		return RobotAccount{}, nil, QuayApiError{Error: err}
+	}
+	var regenerateRobotAccountResponse RobotAccount
+	resp, err := c.do(req, &regenerateRobotAccountResponse)
+
+	return regenerateRobotAccountResponse, resp, QuayApiError{Error: err}
+}
+
 func (c *QuayClient) CreateTeam(namespaceName string, team *Team) (Team, *http.Response, QuayApiError) {
 
 	req, err := c.newRequest("PUT", fmt.Sprintf("/api/v1/organization/%s/team/%s", namespaceName, team.Name), team)

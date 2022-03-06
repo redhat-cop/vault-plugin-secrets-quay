@@ -183,6 +183,16 @@ The role itself can be removed using the following command:
 vault delete quay/roles/my-dynamic-account
 ```
 
+### Password Rotation
+
+Static roles support having their passwords rotated. The following command can be used to rotate the password:
+
+```shell
+vault write -force quay/rotate-role/my-static-account
+```
+
+The output returned will contain the updated password.
+
 ## Developing
 
 If you wish to work on this plugin, you'll first need

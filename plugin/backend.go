@@ -53,6 +53,7 @@ func backend() *quayBackend {
 			},
 			pathRole(b),
 			pathCredentials(b),
+			pathRotateRole(b),
 		),
 		Invalidate: b.invalidate,
 	}
