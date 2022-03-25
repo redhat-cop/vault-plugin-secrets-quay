@@ -4,8 +4,8 @@ go 1.17
 
 require (
 	github.com/hashicorp/go-hclog v0.16.2
-	github.com/hashicorp/vault/api v1.3.1
-	github.com/hashicorp/vault/sdk v0.3.0
+	github.com/hashicorp/vault/api v1.5.0
+	github.com/hashicorp/vault/sdk v0.4.1
 )
 
 require (
