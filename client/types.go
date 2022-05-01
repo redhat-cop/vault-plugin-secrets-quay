@@ -55,6 +55,7 @@ type Team struct {
 
 type RepositoriesResponse struct {
 	Repositories []Repository `json:"repositories"`
+	NextPage     *string      `json:"next_page,omitempty	"`
 }
 type Repository struct {
 	Name   string `json:"name"`

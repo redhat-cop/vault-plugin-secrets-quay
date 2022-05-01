@@ -60,7 +60,7 @@ func (b *quayBackend) createRobot(client *client, robotName string, role *quayRo
 	}
 
 	// Manage Repositories
-	if role.Repositories != nil {
+	if role.Repositories != nil || role.DefaultPermission != nil {
 		// Get Robot Permissions
 		robotPermissions, robotPermissionsResponse, robotPermissionsError := client.GetRobotPermissions(role.NamespaceName, robotName)
 
@@ -75,20 +75,55 @@ func (b *quayBackend) createRobot(client *client, robotName string, role *quayRo
 			return nil, robotPermissionsError.Error
 		}
 
-		for repositoryName, permission := range *role.Repositories {
+		// Loop through Quay repositories
+		for _, namespaceRepository := range namespaceRepositories {
 
-			// Verify repository exists in the organization
-			if updateRepository := repositoryExists(repositoryName, &namespaceRepositories.Repositories); updateRepository {
+			var desiredPermission *Permission
+
+			// Check if a Default Permission should be applied
+			if role.DefaultPermission != nil {
+				desiredPermission = role.DefaultPermission
+			}
+
+			// Check if explicit permission desired
+			if role.Repositories != nil {
+				// Deference repositories
+				roleRepositories := *role.Repositories
+				if rolePermission, ok := roleRepositories[namespaceRepository.Name]; ok {
+					desiredPermission = &rolePermission
+				}
+			}
+
+			if desiredPermission != nil {
 				// Check to see if permission already exists on robot account
-				if updatePermissions := shouldNeedUpdateRepositoryPermissions(repositoryName, permission.String(), &robotPermissions.Permissions); updatePermissions {
-					_, repositoryPermissionUpdateResponse, repositoryPermissionError := client.UpdateRepositoryUserPermission(role.NamespaceName, repositoryName, robotName, permission.String())
+				if updatePermissions := shouldNeedUpdateRepositoryPermissions(namespaceRepository.Name, desiredPermission.String(), &robotPermissions.Permissions); updatePermissions {
+					_, repositoryPermissionUpdateResponse, repositoryPermissionError := client.UpdateRepositoryUserPermission(role.NamespaceName, namespaceRepository.Name, robotName, desiredPermission.String())
 
 					if repositoryPermissionError.Error != nil || repositoryPermissionUpdateResponse.StatusCode != 200 {
 						return nil, repositoryPermissionError.Error
 					}
 				}
+
 			}
+
 		}
+
+		/*
+			for repositoryName, permission := range *role.Repositories {
+
+				// Verify repository exists in the organization
+				if updateRepository := repositoryExists(repositoryName, &namespaceRepositories); updateRepository {
+					// Check to see if permission already exists on robot account
+					if updatePermissions := shouldNeedUpdateRepositoryPermissions(repositoryName, permission.String(), &robotPermissions.Permissions); updatePermissions {
+						_, repositoryPermissionUpdateResponse, repositoryPermissionError := client.UpdateRepositoryUserPermission(role.NamespaceName, repositoryName, robotName, permission.String())
+
+						if repositoryPermissionError.Error != nil || repositoryPermissionUpdateResponse.StatusCode != 200 {
+							return nil, repositoryPermissionError.Error
+						}
+					}
+				}
+			}
+		*/
 	}
 
 	return &robotAccount, nil

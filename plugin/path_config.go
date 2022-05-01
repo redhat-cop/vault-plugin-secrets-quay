@@ -42,14 +42,14 @@ func pathConfig(b *quayBackend) *framework.Path {
 					Sensitive: true,
 				},
 			},
-			"ca_certificate": &framework.FieldSchema{
+			"ca_certificate": {
 				Type:        framework.TypeString,
 				Description: "Certificate for the Quay server",
 				DisplayAttrs: &framework.DisplayAttributes{
 					Name: "CA Certificate",
 				},
 			},
-			"disable_ssl_verification": &framework.FieldSchema{
+			"disable_ssl_verification": {
 				Type:        framework.TypeBool,
 				Default:     false,
 				Description: "Disable SSL verification",
