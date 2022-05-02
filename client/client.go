@@ -143,16 +143,37 @@ func (c *QuayClient) UpdateRepositoryUserPermission(namespace, repositoryName, r
 	return &createTeamResponse, resp, QuayApiError{Error: err}
 }
 
-func (c *QuayClient) GetRepositoriesForNamespace(namespace string) (RepositoriesResponse, *http.Response, QuayApiError) {
+func (c *QuayClient) GetRepositoriesForNamespace(namespace string) ([]Repository, *http.Response, QuayApiError) {
 
-	req, err := c.newRequest("GET", fmt.Sprintf("/api/v1/repository?namespace=%s", namespace), nil)
-	if err != nil {
-		return RepositoriesResponse{}, nil, QuayApiError{Error: err}
+	repositories := []Repository{}
+	var resp *http.Response
+	nextPageParameter := ""
+
+	for {
+
+		req, err := c.newRequest("GET", fmt.Sprintf("/api/v1/repository?namespace=%s%s", namespace, nextPageParameter), nil)
+		if err != nil {
+			return repositories, nil, QuayApiError{Error: err}
+		}
+
+		var getRepositoriesResponse RepositoriesResponse
+		resp, err = c.do(req, &getRepositoriesResponse)
+
+		if resp.StatusCode == 200 {
+
+			repositories = append(repositories, getRepositoriesResponse.Repositories...)
+
+			if getRepositoriesResponse.NextPage != nil {
+				nextPageParameter = fmt.Sprintf("&next_page=%s", *getRepositoriesResponse.NextPage)
+				continue
+			}
+
+		}
+
+		return repositories, resp, QuayApiError{Error: err}
+
 	}
-	var getRepositoriesResponse RepositoriesResponse
-	resp, err := c.do(req, &getRepositoriesResponse)
 
-	return getRepositoriesResponse, resp, QuayApiError{Error: err}
 }
 
 func (c *QuayClient) newRequest(method, path string, body interface{}) (*http.Request, error) {
